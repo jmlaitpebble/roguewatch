@@ -12,18 +12,52 @@
 #include "msg.h"
 #include "rand.h"
 	
+inline void draw_time()
+{
+	PblTm	time;
+	
+	get_time(&time);
+	
+    char		buf[12];
+	
+	buf[0] = time.tm_hour / 10 + '0';
+	buf[1] = time.tm_hour % 10 + '0';
+	buf[2] = ':';
+	buf[3] = time.tm_min / 10 + '0';
+	buf[4] = time.tm_min % 10 + '0';
+	buf[5] = ':';
+	buf[6] = time.tm_sec / 10 + '0';
+	buf[7] = time.tm_sec % 10 + '0';
+	buf[8] = 0;
+	
+	msg_report("    ");
+    msg_report(buf);
+    msg_endline();
+}
+
 void
 status_draw()
 {
-	const u8 dirsymbol[5] =
-	{
-		SYMBOL_LEFT,
-		SYMBOL_RIGHT,
-		SYMBOL_UP,
-		SYMBOL_DOWN,
-	};
     gfx_setcursor(0, 12);
-    gfx_writechar(dirsymbol[glb_roguedir]);
+    gfx_writestring("  ");
+	switch (glb_roguedir)
+	{
+		case 0:
+			gfx_writestring("<-");
+			break;
+		case 1:
+			gfx_writestring("->");
+			break;
+		case 2:
+			gfx_writestring("/\\");
+			break;
+		case 3:
+			gfx_writestring("\\/");
+			break;
+		case 4:
+			gfx_writestring("..");
+			break;
+	}
     gfx_writechar(' ');
     gfx_setattr(ATTR_RED);
     gfx_writechar(SYMBOL_HEART);
@@ -47,6 +81,7 @@ rogue_reset()
     mob_info[0].hp = 10;
     glb_gold = 0;
     glb_depth = 1;
+	map_build(glb_depth);
 }
 
 void
@@ -58,48 +93,58 @@ rogue_draw()
     map_buildfov(apos);
     map_draw(apos);
 
+    if (msg_empty())
+    {
+		draw_time();
+    }
+	
     msg_draw();
     status_draw();
 }
 
-inline void draw_time()
-{
-	PblTm	time;
-	
-	get_time(&time);
-	
-    char		buf[12];
-	
-	buf[0] = time.tm_hour / 10 + '0';
-	buf[1] = time.tm_hour % 10 + '0';
-	buf[2] = ':';
-	buf[3] = time.tm_min / 10 + '0';
-	buf[4] = time.tm_min % 10 + '0';
-	buf[5] = ':';
-	buf[6] = time.tm_sec / 10 + '0';
-	buf[7] = time.tm_sec % 10 + '0';
-	buf[8] = 0;
-	
-    msg_report(buf);
-    msg_endline();
-}
-
 void
-rogue_tick()
+rogue_tick(int dirkey)
 {
     // Locate the avatar
     bool	didmove = false;
     u8		c;
-
-    msg_clear();
-
-	glb_roguedir = rand_choice(4);
-	didmove = true;
-
     POS			apos;
     POS			mpos;
+	
+	static const int rotatebackward[4] = 
+	{
+		3,
+		2,
+		0,
+		1
+	};
+	static const int rotateforward[4] = 
+	{
+		2,
+		3,
+		1,
+		0
+	};
 
-    if (didmove && map_findfirst(TILE_AVATAR, &apos))
+    msg_clear();
+	
+    if (!map_findfirst(TILE_AVATAR, &apos))
+	{
+		// Dead, rebuild the map!
+		rogue_reset();
+		rogue_draw();
+		return;
+	}
+	
+	if (dirkey < 0)
+		glb_roguedir = rotatebackward[glb_roguedir];
+	else if (dirkey > 0)
+		glb_roguedir = rotateforward[glb_roguedir];
+	else
+		didmove = true;
+	glb_roguedir &= 3;
+
+    if (didmove)
 	{
 		const s16		dirmap[5] = 
 				{ DIRXY(-1, 0),
@@ -123,9 +168,5 @@ rogue_tick()
 		}
 	}
 
-    if (msg_empty())
-    {
-		draw_time();
-    }
     rogue_draw();
 }
