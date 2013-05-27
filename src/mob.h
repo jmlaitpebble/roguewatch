@@ -5,6 +5,7 @@
 #pragma once
 
 extern u8	glb_gold;
+extern u8	glb_maxgold;
 extern u8	glb_depth;
 extern u8	glb_roguedir;
 
@@ -13,11 +14,14 @@ extern u8	glb_roguedir;
 // Forward declarations
 #define		MOB_MAXIMUM	32
 
+#define MOB_FLAG_HASGOLD 1
+	
 struct MOB_INFO
 {
     u8		hp;		// Dynamic data.  Zero means dead
     u8		defn;		// Our MOB_NAME
     u8		floor;		// What we are standing on
+	u8		flag;		// state flags
 };
 
 extern struct MOB_INFO mob_info[MOB_MAXIMUM];

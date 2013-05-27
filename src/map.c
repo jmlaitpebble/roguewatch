@@ -139,6 +139,13 @@ map_build(int depth)
 		map_find(TILE_FLOOR, &mpos);
 		MAP(mpos) = TILE_GOLD;
 	}
+	
+	// Create potion
+    for (int nitem = 0; nitem < 1; nitem++)
+    {
+		map_find(TILE_FLOOR, &mpos);
+		MAP(mpos) = TILE_POTION;
+	}
 }
 
 PosDiff

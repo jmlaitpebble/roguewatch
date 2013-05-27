@@ -8,4 +8,4 @@ void status_draw();
 void rogue_reset();
 void rogue_draw();
 void draw_time();
-void rogue_tick(int dirkey);
+bool rogue_tick(int dirkey);

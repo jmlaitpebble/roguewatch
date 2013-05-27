@@ -11,8 +11,8 @@ typedef u32	POS;
 typedef	u32	DIR;
 
 // Fixed map dimensions, must be power of 2.
-#define MAPWIDTHBITS 4
-#define MAPHEIGHTBITS 4
+#define MAPWIDTHBITS 5
+#define MAPHEIGHTBITS 5
 #define MAPWIDTH (1 << MAPWIDTHBITS)
 #define MAPHEIGHT (1 << MAPHEIGHTBITS)
 #define MAPWIDTHMASK (MAPWIDTH-1)

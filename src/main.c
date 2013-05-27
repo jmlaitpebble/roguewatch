@@ -12,7 +12,7 @@
 #endif
 PBL_APP_INFO(MY_UUID,
              "RogueWatch", "Jeff Lait",
-             1, 0, /* App version */
+             1, 1, /* App version */
              DEFAULT_MENU_ICON,
 #if SCREENSAVER_MODE
              APP_INFO_WATCH_FACE);
@@ -79,7 +79,9 @@ config_provider(ClickConfig **config, Window *window)
 	config[BUTTON_ID_UP]->click.handler = (ClickHandler) click_handler;
 	config[BUTTON_ID_UP]->click.repeat_interval_ms = 250;
 	config[BUTTON_ID_SELECT]->click.handler = (ClickHandler) click_handler;
-	config[BUTTON_ID_SELECT]->click.repeat_interval_ms = 250;
+// Do not use key repeat as we want to reserve this for long press
+// and also because it reboots the watch.
+//	config[BUTTON_ID_SELECT]->click.repeat_interval_ms = 250;
 	config[BUTTON_ID_DOWN]->click.handler = (ClickHandler) click_handler;
 	config[BUTTON_ID_DOWN]->click.repeat_interval_ms = 250;
 }
@@ -149,13 +151,14 @@ handle_tick(AppContextRef ctx, PebbleTickEvent *event)
 {
 #if SCREENSAVER_MODE
 	int		dirkey;
+	bool	moved;
 	
 	do
 	{
 		dirkey = rand_range(-1, 1);
-		rogue_tick(dirkey);
+		moved = rogue_tick(dirkey);
 		// Make sure we at least try to move!
-	} while (dirkey != 0);
+	} while (!moved);
 	text_layer_set_text(&glbWatchLayer, glbMapText);
 #else
 	// Set our targets.

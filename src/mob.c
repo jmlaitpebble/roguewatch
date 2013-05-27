@@ -9,50 +9,71 @@
 #include "msg.h"
 #include "rand.h"
 
+u8  glb_maxgold = 0;
 u8	glb_gold = 0;
 u8	glb_depth = 1;
 u8	glb_roguedir = 0;
 
 struct MOB_INFO mob_info[MOB_MAXIMUM];
 
+void
+action_gaingold(int amount)
+{
+	glb_gold += amount;
+	if (glb_gold > glb_maxgold)
+		glb_maxgold = glb_gold;
+}
+
 bool
 action_walk(POS mpos, DIR d)
 {
     POS		goalpos = delta(mpos, d);
     u8		goal = MAP(goalpos);
+    u8		mesym = MAP(mpos);
+	u8		me = TILE_MOBSLOT(mesym);
 
-    if (TILE_ISAVATAR(MAP(mpos)))
+    if (TILE_ISAVATAR(mesym))
     {
-	if (goal == TILE_GOLD)
-	{
-	    msg_report("Gold!");
-	    msg_endline();
-	    MAP(goalpos) = TILE_FLOOR;
-	    glb_gold++;
-	}
-	else if (goal == TILE_DOWNSTAIRS)
-	{
-	    msg_report("You descend.");
-	    // Generate a new map!
-	    glb_depth++;
-	    map_build(glb_depth);
-	    return false;
-	}
-	else if (!glb_tiledefs[goal].ispassable)
-	{
-	    msg_report("Ow!");
-	    u32 roguedirlut = 0x00010302;
-	    glb_roguedir = (roguedirlut >> (glb_roguedir*8)) & 3;
-	    return false;
-	}
+		if (goal == TILE_GOLD)
+		{
+			msg_report("Gold!");
+			msg_endline();
+			MAP(goalpos) = TILE_FLOOR;
+			action_gaingold(1);
+		}
+		else if (goal == TILE_POTION)
+		{
+			msg_report("Healed!");
+			msg_endline();
+			MAP(goalpos) = TILE_FLOOR;
+			mob_info[me].hp += 1;
+		}
+		else if (goal == TILE_DOWNSTAIRS)
+		{
+			msg_report("You descend.");
+			// Generate a new map!
+			glb_depth++;
+			map_build(glb_depth);
+			return false;
+		}
+		else if (!glb_tiledefs[goal].ispassable)
+		{
+			msg_report("Ow!");
+			u32 roguedirlut = 0x00010302;
+			glb_roguedir = (roguedirlut >> (glb_roguedir*8)) & 3;
+			return false;
+		}
     }
+	if (mob_info[me].defn == MOB_ORC && goal == TILE_GOLD)
+	{
+		// Pick up the gold!
+		mob_info[me].flag |= MOB_FLAG_HASGOLD;
+		MAP(goalpos) = TILE_FLOOR;
+	}
 
-    u8		osym = MAP(mpos);
-    u8		sym = TILE_MOBSLOT(osym);
-
-    MAP(mpos) = mob_info[sym].floor;
-    mob_info[sym].floor = MAP(goalpos);
-    MAP(goalpos) = osym;
+    MAP(mpos) = mob_info[me].floor;
+    mob_info[me].floor = MAP(goalpos);
+    MAP(goalpos) = mesym;
 
     return true;
 }
@@ -73,7 +94,8 @@ action_melee(POS mpos, DIR d)
     const char	*verb;
 
     if (!TILE_ISMOB(target))
-	return false;
+		return false;
+	
     target = TILE_MOBSLOT(target);
     me = TILE_MOBSLOT(me);
 
@@ -83,46 +105,53 @@ action_melee(POS mpos, DIR d)
 
     if (hit)
     {
-	bool		kills = false;
-	int		nhp = mob_info[target].hp;
-
-	if (mob_info[me].defn == MOB_ELF &&
-	    mob_info[target].defn == MOB_AVATAR &&
-	    glb_gold)
-	{
-	    verb = " robs ";
-	    glb_gold--;
+		bool		kills = false;
+		int		nhp = mob_info[target].hp;
+	
+		if (mob_info[me].defn == MOB_ELF &&
+			mob_info[target].defn == MOB_AVATAR &&
+			glb_gold)
+		{
+			verb = " robs ";
+			action_gaingold(-1);
+			mob_info[me].flag |= MOB_FLAG_HASGOLD;
+		}
+		else
+		{
+			nhp--;
+			if (nhp <= 0)
+			{
+				kills = true;
+			}
+	
+			if (kills)
+			{
+				verb = " kill ";
+				// If the old floor was floor, and we are
+				// carrying gold, drop it!
+				if (mob_info[target].floor == TILE_FLOOR &&
+				    (mob_info[target].flag & MOB_FLAG_HASGOLD))
+					mob_info[target].floor = TILE_GOLD;
+					
+				MAP(goalpos) = mob_info[target].floor;
+				mob_info[target].hp = 0;
+			}
+			else
+			{
+				verb = " hit ";
+				mob_info[target].hp = nhp;
+			}
+		}
 	}
-	else
-	{
-	    nhp--;
-	    if (nhp <= 0)
-	    {
-		kills = true;
-	    }
-
-	    if (kills)
-	    {
-		verb = " kill ";
-		MAP(goalpos) = mob_info[target].floor;
-		mob_info[target].hp = 0;
-	    }
-	    else
-	    {
-		verb = " hit ";
-		mob_info[target].hp = nhp;
-	    }
-	}
-    }
     else
     {
-	// Just some spam.
-	verb = " miss ";
+		// Just some spam.
+		verb = " miss ";
     }
     msg_report(mob_getname(me));
     msg_report(verb);
     msg_report(mob_getname(target));
-    msg_endline();
+	msg_endline();
     return true;
 }
 
@@ -152,9 +181,23 @@ ai_randomwalk(POS mpos)
     POS		goalpos = delta(mpos, d);
     if (map_canmove(goalpos))
     {
-	// Walk that way!
-	action_bump(mpos, d);
+		// Walk that way!
+		action_bump(mpos, d);
     }
+	else
+	{
+		// Ants can dig!
+		u8 me = TILE_MOBSLOT(MAP(mpos));
+		if (mob_info[me].defn == MOB_ANT)
+		{
+			if (!rand_choice(4))
+			{
+				MAP(goalpos) = TILE_FLOOR;
+				msg_report("Ant digs");
+				msg_endline();
+			}
+		}
+	}
 }
 
 void
@@ -162,7 +205,7 @@ ai_charge(POS mpos, POS apos)
 {
     if (!MAPFLAG(mpos, MAPFLAG_FOV))
     {
-	return ai_randomwalk(mpos);
+		return ai_randomwalk(mpos);
     }
 
     PosDiff	diff;
@@ -174,7 +217,7 @@ ai_charge(POS mpos, POS apos)
 
     if (diff.dist > glb_mobdefs[defn].sight)
     {
-	return ai_randomwalk(mpos);
+		return ai_randomwalk(mpos);
     }
 
     int		sdx, sdy;
@@ -183,22 +226,22 @@ ai_charge(POS mpos, POS apos)
 
     if (sdx && sdy)
     {
-	if (rand_choice(2))
-	    sdy = 0;
-	else
-	    sdx = 0;
+		if (rand_choice(2))
+			sdy = 0;
+		else
+			sdx = 0;
     }
 
     DIR		d = DIRXY(sdx, sdy);
     POS		goalpos = delta(mpos, d);
     if (map_canmoveormob(goalpos))
     {
-	// Walk that way!
-	action_bump(mpos, d);
+		// Walk that way!
+		action_bump(mpos, d);
     }
     else
     {
-	return ai_randomwalk(mpos);
+		return ai_randomwalk(mpos);
     }
 }
 
@@ -207,9 +250,10 @@ mob_resetAll()
 {
     mob_info[0].floor = MAP(0);
     mob_info[0].defn = MOB_AVATAR;
+	mob_info[0].flag = 0;
     MAP(0) = TILE_AVATAR;
     for (int mobslot = 1; mobslot < MOB_MAXIMUM; mobslot++)
-	mob_info[mobslot].hp = 0;
+		mob_info[mobslot].hp = 0;
 }
 
 bool 
@@ -219,29 +263,30 @@ mob_spawn(int depth)
 
     // Find a free slot
     for (slot = 1; slot < MOB_MAXIMUM; slot++)
-	if (mob_info[slot].hp == 0)
-	    break;
+		if (mob_info[slot].hp == 0)
+		    break;
     if (slot >= MOB_MAXIMUM)
-	return false;
+		return false;
 
     // determine a type...
     int		mtype;
     while (1)
     {
-	mtype = rand_choice(NUM_MOBS);
-	if (glb_mobdefs[mtype].depth <= depth)
-	    break;
+		mtype = rand_choice(NUM_MOBS);
+		if (glb_mobdefs[mtype].depth <= depth)
+	    	break;
     }
 
     // Find a square
     POS			mpos;
     if (!map_find(TILE_FLOOR, &mpos))
-	return false;
+		return false;
 
     // Create the mob!
     mob_info[slot].floor = MAP(mpos);
     mob_info[slot].hp = glb_mobdefs[mtype].max_hp;
     mob_info[slot].defn = mtype;
+	mob_info[slot].flag = 0;
     MAP(mpos) = slot + TILE_AVATAR;
 
     return true;

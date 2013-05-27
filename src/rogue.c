@@ -33,6 +33,8 @@ inline void draw_time()
 	msg_report("    ");
     msg_report(buf);
     msg_endline();
+	msg_report("    Best $");
+	msg_reportint(glb_maxgold);
 }
 
 void
@@ -102,7 +104,7 @@ rogue_draw()
     status_draw();
 }
 
-void
+bool
 rogue_tick(int dirkey)
 {
     // Locate the avatar
@@ -133,7 +135,7 @@ rogue_tick(int dirkey)
 		// Dead, rebuild the map!
 		rogue_reset();
 		rogue_draw();
-		return;
+		return true;
 	}
 	
 	if (dirkey < 0)
@@ -169,4 +171,6 @@ rogue_tick(int dirkey)
 	}
 
     rogue_draw();
+	
+	return didmove;
 }

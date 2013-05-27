@@ -111,6 +111,12 @@ glb_tiledefs[NUM_TILES] =
     true,
     true,
   },
+  {
+	'!',
+	  ATTR_NORMAL,
+	  true,
+	  true,
+  },
 };
 
 // Definitions for ATTR
