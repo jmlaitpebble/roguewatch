@@ -1,0 +1,29 @@
+{
+    "versionLabel": "1.0",
+    "uuid": "065325b8-7e99-4d3c-97f3-6ad3ce6d13e2",
+    "appKeys": {},
+    "longName": "Rogue Watch",
+    "versionCode": 1,
+    "capabilities": [
+        ""
+    ],
+    "shortName": "Rogue Watch",
+    "companyName": "jmlait",
+    "watchapp": {
+        "watchface": false
+    },
+    "resources": {
+        "media": [
+            {
+                "type": "raw",
+                "name": "DUMMY",
+                "file": "data/resource_map.json"
+            },
+            {
+                "type": "font",
+                "name": "FONT_DROIDMONO_12",
+                "file": "fonts/DroidSansMono.ttf"
+            }
+        ]
+    }
+}

@@ -1,9 +1,7 @@
 ///
 /// Game like functions
 ///
-#include "pebble_os.h"
-#include "pebble_app.h"
-#include "pebble_fonts.h"
+#include <pebble.h>
 	
 #include "mytypes.h"
 #include "gfxengine.h"
@@ -11,23 +9,25 @@
 #include "map.h"
 #include "msg.h"
 #include "rand.h"
+#include <time.h>
 	
 inline void draw_time()
 {
-	PblTm	time;
+	struct tm	foo;
 	
-	get_time(&time);
+	time_t epoch = time(NULL);
+	foo = *localtime(&epoch);
 	
     char		buf[12];
 	
-	buf[0] = time.tm_hour / 10 + '0';
-	buf[1] = time.tm_hour % 10 + '0';
+	buf[0] = foo.tm_hour / 10 + '0';
+	buf[1] = foo.tm_hour % 10 + '0';
 	buf[2] = ':';
-	buf[3] = time.tm_min / 10 + '0';
-	buf[4] = time.tm_min % 10 + '0';
+	buf[3] = foo.tm_min / 10 + '0';
+	buf[4] = foo.tm_min % 10 + '0';
 	buf[5] = ':';
-	buf[6] = time.tm_sec / 10 + '0';
-	buf[7] = time.tm_sec % 10 + '0';
+	buf[6] = foo.tm_sec / 10 + '0';
+	buf[7] = foo.tm_sec % 10 + '0';
 	buf[8] = 0;
 	
 	msg_report("    ");
@@ -109,7 +109,6 @@ rogue_tick(int dirkey)
 {
     // Locate the avatar
     bool	didmove = false;
-    u8		c;
     POS			apos;
     POS			mpos;
 	

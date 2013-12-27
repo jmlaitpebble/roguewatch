@@ -1,6 +1,5 @@
-#include "pebble_os.h"
-#include "pebble_app.h"
-#include "pebble_fonts.h"
+#include <pebble.h>
+#include <time.h>
 	
 #include "mytypes.h"
 
@@ -24,11 +23,12 @@ int rand_curseed = 132;
 void
 rand_seed()
 {
-	PblTm	time;
+	struct tm	foo;
 	
-	get_time(&time);
+	time_t epoch = time(NULL);
+	foo = *localtime(&epoch);
 	
-    rand_curseed = (time.tm_hour * 60 + time.tm_min) * 60 + time.tm_sec;
+    rand_curseed = (foo.tm_hour * 60 + foo.tm_min) * 60 + foo.tm_sec;
 }
 
 int
