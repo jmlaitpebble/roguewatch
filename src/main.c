@@ -3,24 +3,6 @@
 	
 #include "config.h"
 
-
-#if 0
-#if SCREENSAVER_MODE
-#define MY_UUID { 0x8E, 0xFD, 0x77, 0xD9, 0x8C, 0xCB, 0x4B, 0x16, 0xA4, 0xAB, 0x6D, 0x84, 0xA2, 0xAD, 0xEA,  0xD0 }
-#else
-#define MY_UUID { 0x8E, 0xFD, 0x77, 0xD9, 0x8C, 0xCB, 0x4B, 0x16, 0xA4, 0xAB, 0x6D, 0x84, 0xA2, 0xAD, 0xEA,  0xCF }
-#endif
-PBL_APP_INFO(MY_UUID,
-             "RogueWatch", "Jeff Lait",
-             1, 1, /* App version */
-             DEFAULT_MENU_ICON,
-#if SCREENSAVER_MODE
-             APP_INFO_WATCH_FACE);
-#else
-             APP_INFO_STANDARD_APP);
-#endif
-#endif
-
 #include "mytypes.h"
 #include "rand.h"
 	
@@ -139,6 +121,9 @@ void
 handle_deinit()
 {
 	window_destroy(glbWindowP);
+	glbWindowP = 0;
+	text_layer_destroy(glbWatchLayerP);
+	glbWatchLayerP = 0;
 	// Not strictly necessary
 	fonts_unload_custom_font(glbMonoFont);
 }
